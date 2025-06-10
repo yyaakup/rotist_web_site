@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<style>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rotist - Rota Planlayıcı</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&display=swap" rel="stylesheet">
+</head>
+<body>
+
+
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&display=swap" rel="stylesheet">
+
+
+
+
+
+<!-- Navbar -->
+<!-- Navbar -->
+<nav class="navbar" style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-family: 'Segoe UI', sans-serif; flex-wrap: wrap; gap: 10px;">
+  <div class="logo" style="display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 20px; color: #2c3e50;">
+    <img src="https://i.hizliresim.com/1z3nuak.png" alt="Rotist Logo" style="height: 60px;" />
+<span style="font-family: 'Delius Swash Caps', cursive; font-weight: 400; font-style: normal;">Rotist</span>
+  </div>
+
+  <ul class="menu" style="display: flex; align-items: center; flex-wrap: wrap; gap: 20px; list-style: none; margin: 0; padding: 0;">
+    
+    <!-- Adres arama -->
+    <li class="search-area" style="display: flex; align-items: center; gap: 10px;">
+<input 
+  type="text" 
+  id="addressInput" 
+  placeholder="Taksim, Beyoğlu, İstanbul" 
+  oninput="searchAddress()" 
+  style="
+    padding: 10px 14px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px; 
+    width: 220px; 
+    font-size: 14px; 
+    transition: box-shadow 0.3s, border-color 0.3s;
+    outline: none;
+  "
+  onfocus="this.style.borderColor='#3498db'; this.style.boxShadow='0 0 8px rgba(52,152,219,0.4)'"
+  onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none'"
+/>
+      <div id="suggestions"></div>
+      <button onclick="useGeolocation()" style="padding: 6px 10px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">Konum</button>
+    </li>
+
+    <!-- Kategori seçimi -->
+    <li class="dropdown" style="position: relative;">
+      <button onclick="toggleCategoryMenu()" style="padding: 6px 10px; background-color: #ecf0f1; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">📂 Kategoriler</button>
+    <div id="categoryMenu"
+     style="display: none; position: absolute; top: 48px; left: 0; background: #ffffff; border: 1px solid #ccc; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 16px 18px; z-index: 999; max-height: 320px; overflow-y: auto; min-width: 220px; color: #000; font-family: 'Segoe UI', sans-serif; font-size: 15px;">
+  
+  <style>
+    #categoryMenu label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+
+    #categoryMenu label:hover {
+      background-color: #f0f8ff;
+      transform: translateX(2px);
+    }
+
+    #categoryMenu input[type="checkbox"] {
+      accent-color: #007BFF; /* modern mavi */
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    #categoryMenu input[type="checkbox"]:checked + span {
+      background-color: #e0f0ff;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+  </style>
+
+  <label><input type="checkbox" value="tarihi" onchange="highlightSelected(this)" /><span>Tarihi Yerler</span></label>
+  <label><input type="checkbox" value="muze" onchange="highlightSelected(this)" /><span>Müzeler</span></label>
+  <label><input type="checkbox" value="dini" onchange="highlightSelected(this)" /><span>Dini Yapılar</span></label>
+  <label><input type="checkbox" value="manzara" onchange="highlightSelected(this)" /><span>Manzara Bölgeleri</span></label>
+  <label><input type="checkbox" value="kafe" onchange="highlightSelected(this)" /><span>Kafeler</span></label>
+  <label><input type="checkbox" value="galeri" onchange="highlightSelected(this)" /><span>Sanat Galerileri</span></label>
+  <label><input type="checkbox" value="stadyum" onchange="highlightSelected(this)" /><span>Stadyumlar</span></label>
+  <label><input type="checkbox" value="park" onchange="highlightSelected(this)" /><span>Parklar</span></label>
+  <label><input type="checkbox" value="meydan" onchange="highlightSelected(this)" /><span>Meydanlar</span></label>
+  <label><input type="checkbox" value="cadde" onchange="highlightSelected(this)" /><span>Ünlü Caddeler</span></label>
+</div>
+
+<script>
+  function highlightSelected(checkbox) {
+    const label = checkbox.closest('label');
+    if (checkbox.checked) {
+      label.style.backgroundColor = '#d9efff';
+      label.style.fontWeight = 'bold';
+    } else {
+      label.style.backgroundColor = '';
+      label.style.fontWeight = '';
+    }
+  }
+</script>
+
+    </li>
+
+    <!-- Yer sayısı seçimi -->
+<li class="range-area" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #f0f4ff; border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); font-family: 'Segoe UI', sans-serif; color: #2c3e50;">
+  <label for="placeCount" style="font-weight: 500; white-space: nowrap;">
+    🗺️ Kaç yeri gezmek istiyorsun?
+  </label>
+  <input type="range" id="placeCount" min="1" max="25" value="5"
+         oninput="document.getElementById('placeCountLabel').textContent = this.value"
+         style="width: 140px; accent-color: #3498db; cursor: pointer;" />
+  <span id="placeCountLabel" style="background: #3498db; color: white; font-weight: bold; padding: 2px 8px; border-radius: 6px; min-width: 26px; text-align: center;">
+    5
+  </span>
+</li>
+
+
+    <!-- Rota butonu -->
+   <li style="list-style: none; margin-top: 10px;">
+  <button 
+    onclick="createRoute()" 
+    style="
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+    "
+    onmouseover="this.style.background='linear-gradient(135deg, #2ecc71, #27ae60)'; this.style.transform='scale(1.03)'"
+    onmouseout="this.style.background='linear-gradient(135deg, #27ae60, #2ecc71)'; this.style.transform='scale(1)'"
+  >
+     Rotayı Oluştur
+  </button>
+</li>
+
+</nav>
+
+<!-- Kategori menüsünü aç/kapat -->
+<script>
+
+  function toggleCategoryMenu() {
+    const menu = document.getElementById("categoryMenu");
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+  }
+
+  const rangeInput = document.getElementById("placeCount");
+  const rangeLabel = document.getElementById("placeCountLabel");
+
+  rangeInput.addEventListener("input", () => {
+    rangeLabel.textContent = rangeInput.value;
+  });
+</script>
+
+  <div id="map">
+  <!-- Kategori Renk Efsanesi -->
+<div id="categoryLegend" style="
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 220px;
+  backdrop-filter: blur(6px);
+">
+  <strong style="font-size: 15px; display: block; margin-bottom: 6px;">🎨 Kategori Renkleri</strong>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+    <li><span style="display:inline-block;width:14px;height:14px;background:#e74c3c;border-radius:3px;margin-right:6px;"></span> Tarihi Yerler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;margin-right:6px;"></span> Müzeler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;border-radius:3px;margin-right:6px;"></span> Dini Yapılar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#3498db;border-radius:3px;margin-right:6px;"></span> Manzara Bölgeleri</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#f39c12;border-radius:3px;margin-right:6px;"></span> Kafeler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#1abc9c;border-radius:3px;margin-right:6px;"></span> Sanat Galerileri</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;margin-right:6px;"></span> Stadyumlar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#27ae60;border-radius:3px;margin-right:6px;"></span> Parklar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#e67e22;border-radius:3px;margin-right:6px;"></span> Meydanlar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#9b59b6;border-radius:3px;margin-right:6px;"></span> Ünlü Caddeler</li>
+  </ul>
+</div>
+
+  
+  
+  
+<div id="routeInstructions" style="
+  display: none;
+  position: absolute;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  max-width: 420px;
+  z-index: 1000;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(240, 240, 255, 0.2));
+  padding: 20px 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #222;
+  animation: fadeInUp 0.5s ease;
+  transition: all 0.3s ease-in-out;
+">
+  <!-- Başlık -->
+  <div style="
+    font-weight: 600;
+    font-size: 17px;
+    margin-bottom: 10px;
+    color: #222;
+    border-left: 4px solid #007bff;
+    padding-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  ">
+    <span>🧭</span> Yol Tarifi
+  </div>
+
+  <!-- Talimat Listesi -->
+  <ol id="instructionList" style="
+    margin: 0;
+    padding-left: 20px;
+    max-height: 280px;
+    overflow-y: auto;
+    list-style-position: inside;
+    scrollbar-width: thin;
+    scrollbar-color: #999 #f0f0f0;
+  "></ol>
+</div>
+
+
+
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
