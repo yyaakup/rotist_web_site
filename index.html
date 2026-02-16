@@ -3,230 +3,260 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rotist - Rota Planlayıcı</title>
+  <title>Rotist - Profesyonel Rota Planlayıcı</title>
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   
   <style>
-    /* Temel Stil ve Animasyonlar */
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Poppins', sans-serif; overflow: hidden; }
-    #map { height: calc(100vh - 80px); width: 100%; position: relative; z-index: 1; }
+    /* Global Stiller */
+    * { box-sizing: border-box; transition: all 0.2s ease; }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Poppins', sans-serif; background: #f4f7f6; overflow: hidden; }
+    
+    /* Layout */
+    .app-container { display: flex; flex-direction: column; height: 100vh; }
+    #map { flex-grow: 1; width: 100%; z-index: 1; }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    /* Navbar */
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; padding: 10px 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      z-index: 1001; position: relative;
     }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-text { font-family: 'Delius Swash Caps', cursive; font-size: 24px; color: #2c3e50; }
 
-    /* Artı Butonu Stili */
-    .add-place-btn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #ff5e57, #e14b48);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 30px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
+    /* Artı Butonu */
+    .add-trigger-btn {
+      position: fixed; bottom: 30px; right: 30px;
+      width: 65px; height: 65px; background: linear-gradient(135deg, #ff5e57, #e14b48);
+      color: white; border: none; border-radius: 50%; font-size: 32px;
+      cursor: pointer; box-shadow: 0 6px 20px rgba(225, 75, 72, 0.4);
+      z-index: 2000; display: flex; align-items: center; justify-content: center;
     }
-    .add-place-btn:hover { transform: scale(1.1) rotate(90deg); }
+    .add-trigger-btn:hover { transform: scale(1.1) rotate(90deg); }
 
-    /* Modal (Pencere) Tasarımı */
+    /* Form Modalı */
     .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(5px);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      display: none; justify-content: center; align-items: center; z-index: 3000;
     }
     .modal-content {
-      background: white;
-      padding: 25px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      animation: fadeInUp 0.4s ease;
-    }
-    .modal-header { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-    .modal-body input, .modal-body select {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-sizing: border-box;
-    }
-    #miniMap { height: 200px; border-radius: 10px; margin-bottom: 10px; }
-    .save-btn {
-      width: 100%;
-      padding: 12px;
-      background: #27ae60;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
+      background: white; border-radius: 24px; width: 95%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto; padding: 30px; position: relative;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
     }
 
-    /* Kategori Menü Hover Efektleri */
-    #categoryMenu label {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-      padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: 0.2s;
+    /* Web Form Elemanları */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 14px; }
+    .form-control {
+      width: 100%; padding: 12px 15px; border: 2px solid #eee;
+      border-radius: 12px; font-family: inherit; font-size: 14px; outline: none;
     }
-    #categoryMenu label:hover { background-color: #f0f8ff; transform: translateX(2px); }
+    .form-control:focus { border-color: #3498db; background: #f9fbff; }
+    
+    #miniMap { height: 220px; border-radius: 15px; margin: 10px 0; border: 2px solid #eee; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 25px; }
+    .btn {
+      flex: 1; padding: 14px; border: none; border-radius: 12px;
+      font-weight: 600; cursor: pointer; font-size: 15px;
+    }
+    .btn-save { background: #27ae60; color: white; }
+    .btn-save:hover { background: #219150; box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .btn-cancel { background: #f1f2f6; color: #57606f; }
+
+    /* Sağ Üst Legend */
+    .map-overlay-card {
+      position: absolute; top: 20px; right: 20px; background: white;
+      padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      z-index: 1000; font-size: 13px; width: 180px;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-active { display: flex; animation: slideUp 0.4s ease-out; }
   </style>
 </head>
 <body>
 
-<nav class="navbar" style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-family: 'Segoe UI', sans-serif; position: relative; z-index: 1001;">
-  <div class="logo" style="display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 20px; color: #2c3e50;">
-    <img src="https://i.hizliresim.com/1z3nuak.png" alt="Rotist Logo" style="height: 60px;" />
-    <span style="font-family: 'Delius Swash Caps', cursive; font-weight: 400;">Rotist</span>
-  </div>
+<div class="app-container">
+  <nav class="navbar">
+    <div class="logo-area">
+      <img src="https://i.hizliresim.com/1z3nuak.png" alt="Logo" style="height: 50px;">
+      <span class="logo-text">Rotist</span>
+    </div>
+    
+    <div style="display: flex; gap: 15px;">
+        <input type="text" id="mainSearch" placeholder="Haritada yer ara..." class="form-control" style="width: 250px; padding: 8px 15px;">
+        <button onclick="createRoute()" class="btn-save" style="padding: 0 20px; border-radius: 8px; border:none; color:white; cursor:pointer;">Rotayı Çiz</button>
+    </div>
+  </nav>
 
-  <ul class="menu" style="display: flex; align-items: center; gap: 20px; list-style: none; margin: 0; padding: 0;">
-    <li class="search-area">
-      <input type="text" id="addressInput" placeholder="Neredesin? (Örn: Taksim)" style="padding: 10px 14px; border: 1px solid #ccc; border-radius: 8px; width: 220px; outline: none;"/>
-      <button onclick="useGeolocation()" style="padding: 8px 12px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">Konum</button>
-    </li>
-
-    <li class="dropdown" style="position: relative;">
-      <button onclick="toggleCategoryMenu()" style="padding: 8px 12px; background-color: #ecf0f1; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">📂 Filtrele</button>
-      <div id="categoryMenu" style="display: none; position: absolute; top: 48px; left: 0; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 15px; min-width: 200px;">
-        <label><input type="checkbox" value="tarihi"> 🏛️ Tarihi</label>
-        <label><input type="checkbox" value="kafe"> ☕ Kafeler</label>
-        <label><input type="checkbox" value="manzara"> 🌅 Manzara</label>
+  <div id="map">
+    <div class="map-overlay-card">
+      <strong style="display:block; margin-bottom:8px;">📍 Yer Kategorileri</strong>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+        <span style="width:12px; height:12px; background:#e74c3c; border-radius:3px;"></span> Tarihi
       </div>
-    </li>
-
-    <li class="range-area" style="display: flex; align-items: center; gap: 10px; background: #f0f4ff; padding: 8px 15px; border-radius: 8px;">
-      <label>Kaç yer?</label>
-      <input type="range" id="placeCount" min="1" max="20" value="5" oninput="document.getElementById('placeCountLabel').textContent = this.value" />
-      <span id="placeCountLabel" style="font-weight: bold; color: #3498db;">5</span>
-    </li>
-
-    <li>
-      <button onclick="createRoute()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Rotayı Oluştur</button>
-    </li>
-  </ul>
-</nav>
-
-<div id="map">
-  <div id="categoryLegend" style="position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; font-size: 13px;">
-    <strong>🎨 Renkler</strong>
-    <div><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;margin-right:5px;"></span> Tarihi</div>
-    <div><span style="display:inline-block;width:10px;height:10px;background:#3498db;margin-right:5px;"></span> Manzara</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+        <span style="width:12px; height:12px; background:#f39c12; border-radius:3px;"></span> Kafe/Restoran
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="width:12px; height:12px; background:#2ecc71; border-radius:3px;"></span> Doğa/Park
+      </div>
+    </div>
   </div>
 </div>
 
-<button class="add-place-btn" onclick="openAddModal()">+</button>
+<button class="add-trigger-btn" onclick="toggleModal(true)">+</button>
 
-<div class="modal-overlay" id="modalOverlay">
+<div class="modal-overlay" id="formModal">
   <div class="modal-content">
-    <div class="modal-header">
-      <h3 style="margin:0">📍 Yeni Yer Öner/Ekle</h3>
+    <h2 style="margin-top:0; color:#2c3e50;">✨ Yeni Mekan Kaydı</h2>
+    <p style="color:#7f8c8d; font-size:14px;">Mekanı haritadan seçin ve bilgilerini doldurun.</p>
+
+    <div class="form-group">
+      <label>Mekan Adı</label>
+      <input type="text" id="placeName" class="form-control" placeholder="Örn: Galata Kahvecisi">
     </div>
-    <div class="modal-body">
-      <input type="text" id="modalSearchInput" placeholder="Mekan ismi ara..." onchange="searchInModal()">
+
+    <div class="form-group">
+      <label>Harita Üzerinde Konum (Tıkla veya Ara)</label>
+      <input type="text" id="miniSearch" class="form-control" placeholder="Adres veya mekan ara..." onchange="searchLocation()">
       <div id="miniMap"></div>
-      <select id="modalCategory">
-        <option value="tarihi">🏛️ Tarihi Yerler</option>
-        <option value="kafe">☕ Kafeler</option>
-        <option value="manzara">🌅 Manzara Bölgeleri</option>
-        <option value="muze">🎨 Müzeler</option>
+      <small style="color:#95a5a6;">* Haritaya tıklayarak kırmızı işaretçiyi hareket ettirebilirsiniz.</small>
+    </div>
+
+    <div class="form-group">
+      <label>Kategori</label>
+      <select id="placeCategory" class="form-control">
+        <option value="tarihi">🏛️ Tarihi Yapı</option>
+        <option value="kafe">☕ Kafe & Restoran</option>
+        <option value="doga">🌳 Doğa & Park</option>
+        <option value="muze">🎨 Müze & Sanat</option>
       </select>
-      <button class="save-btn" onclick="saveNewPlace()">Sisteme Ekle</button>
-      <button onclick="closeAddModal()" style="width:100%; background:none; border:none; color:#777; margin-top:10px; cursor:pointer;">Vazgeç</button>
+    </div>
+
+    <div class="form-group">
+      <label>Ziyaret Notu / Açıklama</label>
+      <textarea id="placeDesc" class="form-control" rows="3" placeholder="Buraya gidince ne yapmalı?"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="toggleModal(false)">Vazgeç</button>
+      <button class="btn btn-save" onclick="saveData()">Sisteme Kaydet</button>
     </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  // Global Değişkenler
   let mainMap, miniMap, miniMarker;
-  const overlay = document.getElementById('modalOverlay');
+  let savedPlaces = [];
 
-  // Haritayı Başlat
+  // Haritaları Başlat
   window.onload = () => {
-    mainMap = L.map('map').setView([41.0082, 28.9784], 13);
+    mainMap = L.map('map').setView([41.0082, 28.9784], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
   };
 
-  // Kategori Menüsü
-  function toggleCategoryMenu() {
-    const menu = document.getElementById("categoryMenu");
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
-  }
-
   // Modal Aç/Kapat
-  function openAddModal() {
-    overlay.style.display = 'flex';
-    if (!miniMap) {
-      miniMap = L.map('miniMap').setView([41.0082, 28.9784], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
-      
-      miniMap.on('click', (e) => {
-        if (miniMarker) miniMap.removeLayer(miniMarker);
-        miniMarker = L.marker(e.latlng).addTo(miniMap);
-      });
+  function toggleModal(show) {
+    const modal = document.getElementById('formModal');
+    if (show) {
+      modal.classList.add('modal-active');
+      initMiniMap();
+    } else {
+      modal.classList.remove('modal-active');
     }
   }
 
-  function closeAddModal() {
-    overlay.style.display = 'none';
+  // Mini Harita Fonksiyonu
+  function initMiniMap() {
+    if (!miniMap) {
+      setTimeout(() => {
+        miniMap = L.map('miniMap').setView([41.0082, 28.9784], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+        
+        miniMap.on('click', (e) => {
+          updateMiniMarker(e.latlng);
+        });
+      }, 200);
+    }
   }
 
-  // Modal İçinde Arama
-  async function searchInModal() {
-    const val = document.getElementById('modalSearchInput').value;
-    if(val.length < 3) return;
+  function updateMiniMarker(latlng) {
+    if (miniMarker) miniMap.removeLayer(miniMarker);
+    miniMarker = L.marker(latlng, {draggable: true}).addTo(miniMap);
+  }
+
+  // Yer Arama (API)
+  async function searchLocation() {
+    const query = document.getElementById('miniSearch').value;
+    if(query.length < 3) return;
     
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}, Istanbul`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}, Istanbul`);
     const data = await res.json();
     
     if(data.length > 0) {
-      const pos = [data[0].lat, data[0].lon];
-      miniMap.setView(pos, 15);
-      if (miniMarker) miniMap.removeLayer(miniMarker);
-      miniMarker = L.marker(pos).addTo(miniMap);
+      const loc = [data[0].lat, data[0].lon];
+      miniMap.setView(loc, 15);
+      updateMiniMarker(loc);
     }
   }
 
-  // Yeni Yeri Kaydet (Simülasyon)
-  function saveNewPlace() {
-    if(!miniMarker) { alert("Lütfen haritadan yer seçin!"); return; }
+  // VERİ KAYDETME (Asıl Web Form İşlemi)
+  function saveData() {
+    const name = document.getElementById('placeName').value;
+    const cat = document.getElementById('placeCategory').value;
+    const desc = document.getElementById('placeDesc').value;
     
-    const cat = document.getElementById('modalCategory').value;
-    const name = document.getElementById('modalSearchInput').value || "Yeni Mekan";
+    if(!name || !miniMarker) {
+      alert("Lütfen mekan adını girin ve haritadan konum seçin!");
+      return;
+    }
+
+    const latlng = miniMarker.getLatLng();
+    const newData = { name, cat, desc, latlng };
     
-    // Ana haritaya ekle
-    L.marker(miniMarker.getLatLng())
-      .addTo(mainMap)
-      .bindPopup(`<b>${name}</b><br>Kategori: ${cat}`)
+    // Veriyi diziye ekle
+    savedPlaces.push(newData);
+
+    // Ana Haritaya Ekle
+    const markerColor = cat === 'tarihi' ? '#e74c3c' : (cat === 'kafe' ? '#f39c12' : '#2ecc71');
+    
+    L.circleMarker(latlng, {
+      radius: 10,
+      fillColor: markerColor,
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8
+    }).addTo(mainMap)
+      .bindPopup(`<b>${name}</b><br><i>${cat.toUpperCase()}</i><br>${desc}`)
       .openPopup();
+
+    // Formu temizle ve kapat
+    document.getElementById('placeName').value = '';
+    document.getElementById('placeDesc').value = '';
+    toggleModal(false);
     
-    alert("Mekan başarıyla eklendi ve haritaya işlendi!");
-    closeAddModal();
+    console.log("Kaydedilen Veriler:", savedPlaces);
+    alert("Mekan başarıyla veri tabanına (simüle) eklendi!");
   }
 
-  // Rota Oluşturma (Boş Fonksiyon)
   function createRoute() {
-    alert(document.getElementById('placeCount').value + " duraklı rotanız hazırlanıyor...");
+    if(savedPlaces.length < 2) {
+        alert("Rota oluşturmak için en az 2 mekan eklemelisiniz!");
+        return;
+    }
+    alert("Eklediğiniz " + savedPlaces.length + " nokta arasında en kısa rota hesaplanıyor...");
   }
 </script>
 
