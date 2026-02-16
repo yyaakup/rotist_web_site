@@ -1,264 +1,419 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+<style>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* YENİ SİSTEM İÇİN EK CSS (HİÇBİR ŞEYİ SİLMEZ) */
+.add-btn-fixed {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 65px;
+    height: 65px;
+    background: linear-gradient(135deg, #ff5e57, #e14b48);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 32px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s;
+}
+.add-btn-fixed:hover { transform: scale(1.1) rotate(90deg); }
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+.modal-form {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    font-family: 'Segoe UI', sans-serif;
+    animation: fadeInUp 0.4s ease;
+}
+.modal-form input, .modal-form select, .modal-form textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+#miniMap { height: 200px; border-radius: 12px; margin: 10px 0; border: 1px solid #eee; }
+.save-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 15px;
+    width: 100%;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+}
+</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rotist - Profesyonel Rota Planlayıcı</title>
-  
+  <title>Rotist - Rota Planlayıcı</title>
+  <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0;">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&display=swap" rel="stylesheet">
+
+<nav class="navbar" style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 12px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-family: 'Segoe UI', sans-serif; flex-wrap: wrap; gap: 10px;">
+  <div class="logo" style="display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 20px; color: #2c3e50;">
+    <img src="https://i.hizliresim.com/1z3nuak.png" alt="Rotist Logo" style="height: 60px;" />
+<span style="font-family: 'Delius Swash Caps', cursive; font-weight: 400; font-style: normal;">Rotist</span>
+  </div>
+
+  <ul class="menu" style="display: flex; align-items: center; flex-wrap: wrap; gap: 20px; list-style: none; margin: 0; padding: 0;">
+    
+    <li class="search-area" style="display: flex; align-items: center; gap: 10px;">
+<input 
+  type="text" 
+  id="addressInput" 
+  placeholder="Taksim, Beyoğlu, İstanbul" 
+  oninput="searchAddress()" 
+  style="
+    padding: 10px 14px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px; 
+    width: 220px; 
+    font-size: 14px; 
+    transition: box-shadow 0.3s, border-color 0.3s;
+    outline: none;
+  "
+  onfocus="this.style.borderColor='#3498db'; this.style.boxShadow='0 0 8px rgba(52,152,219,0.4)'"
+  onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none'"
+/>
+      <div id="suggestions"></div>
+      <button onclick="useGeolocation()" style="padding: 6px 10px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">Konum</button>
+    </li>
+
+    <li class="dropdown" style="position: relative;">
+      <button onclick="toggleCategoryMenu()" style="padding: 6px 10px; background-color: #ecf0f1; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">📂 Kategoriler</button>
+    <div id="categoryMenu"
+     style="display: none; position: absolute; top: 48px; left: 0; background: #ffffff; border: 1px solid #ccc; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 16px 18px; z-index: 999; max-height: 320px; overflow-y: auto; min-width: 220px; color: #000; font-family: 'Segoe UI', sans-serif; font-size: 15px;">
   
   <style>
-    /* Global Stiller */
-    * { box-sizing: border-box; transition: all 0.2s ease; }
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Poppins', sans-serif; background: #f4f7f6; overflow: hidden; }
-    
-    /* Layout */
-    .app-container { display: flex; flex-direction: column; height: 100vh; }
-    #map { flex-grow: 1; width: 100%; z-index: 1; }
-
-    /* Navbar */
-    .navbar {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #fff; padding: 10px 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      z-index: 1001; position: relative;
-    }
-    .logo-area { display: flex; align-items: center; gap: 12px; }
-    .logo-text { font-family: 'Delius Swash Caps', cursive; font-size: 24px; color: #2c3e50; }
-
-    /* Artı Butonu */
-    .add-trigger-btn {
-      position: fixed; bottom: 30px; right: 30px;
-      width: 65px; height: 65px; background: linear-gradient(135deg, #ff5e57, #e14b48);
-      color: white; border: none; border-radius: 50%; font-size: 32px;
-      cursor: pointer; box-shadow: 0 6px 20px rgba(225, 75, 72, 0.4);
-      z-index: 2000; display: flex; align-items: center; justify-content: center;
-    }
-    .add-trigger-btn:hover { transform: scale(1.1) rotate(90deg); }
-
-    /* Form Modalı */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-      display: none; justify-content: center; align-items: center; z-index: 3000;
-    }
-    .modal-content {
-      background: white; border-radius: 24px; width: 95%; max-width: 600px;
-      max-height: 90vh; overflow-y: auto; padding: 30px; position: relative;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    #categoryMenu label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
     }
 
-    /* Web Form Elemanları */
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 14px; }
-    .form-control {
-      width: 100%; padding: 12px 15px; border: 2px solid #eee;
-      border-radius: 12px; font-family: inherit; font-size: 14px; outline: none;
-    }
-    .form-control:focus { border-color: #3498db; background: #f9fbff; }
-    
-    #miniMap { height: 220px; border-radius: 15px; margin: 10px 0; border: 2px solid #eee; }
-
-    .btn-row { display: flex; gap: 10px; margin-top: 25px; }
-    .btn {
-      flex: 1; padding: 14px; border: none; border-radius: 12px;
-      font-weight: 600; cursor: pointer; font-size: 15px;
-    }
-    .btn-save { background: #27ae60; color: white; }
-    .btn-save:hover { background: #219150; box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
-    .btn-cancel { background: #f1f2f6; color: #57606f; }
-
-    /* Sağ Üst Legend */
-    .map-overlay-card {
-      position: absolute; top: 20px; right: 20px; background: white;
-      padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      z-index: 1000; font-size: 13px; width: 180px;
+    #categoryMenu label:hover {
+      background-color: #f0f8ff;
+      transform: translateX(2px);
     }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
+    #categoryMenu input[type="checkbox"] {
+      accent-color: #007BFF; /* modern mavi */
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
     }
-    .modal-active { display: flex; animation: slideUp 0.4s ease-out; }
+
+    #categoryMenu input[type="checkbox"]:checked + span {
+      background-color: #e0f0ff;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
   </style>
-</head>
-<body>
 
-<div class="app-container">
-  <nav class="navbar">
-    <div class="logo-area">
-      <img src="https://i.hizliresim.com/1z3nuak.png" alt="Logo" style="height: 50px;">
-      <span class="logo-text">Rotist</span>
-    </div>
-    
-    <div style="display: flex; gap: 15px;">
-        <input type="text" id="mainSearch" placeholder="Haritada yer ara..." class="form-control" style="width: 250px; padding: 8px 15px;">
-        <button onclick="createRoute()" class="btn-save" style="padding: 0 20px; border-radius: 8px; border:none; color:white; cursor:pointer;">Rotayı Çiz</button>
-    </div>
-  </nav>
-
-  <div id="map">
-    <div class="map-overlay-card">
-      <strong style="display:block; margin-bottom:8px;">📍 Yer Kategorileri</strong>
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
-        <span style="width:12px; height:12px; background:#e74c3c; border-radius:3px;"></span> Tarihi
-      </div>
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
-        <span style="width:12px; height:12px; background:#f39c12; border-radius:3px;"></span> Kafe/Restoran
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="width:12px; height:12px; background:#2ecc71; border-radius:3px;"></span> Doğa/Park
-      </div>
-    </div>
-  </div>
+  <label><input type="checkbox" value="tarihi" onchange="highlightSelected(this)" /><span>Tarihi Yerler</span></label>
+  <label><input type="checkbox" value="muze" onchange="highlightSelected(this)" /><span>Müzeler</span></label>
+  <label><input type="checkbox" value="dini" onchange="highlightSelected(this)" /><span>Dini Yapılar</span></label>
+  <label><input type="checkbox" value="manzara" onchange="highlightSelected(this)" /><span>Manzara Bölgeleri</span></label>
+  <label><input type="checkbox" value="kafe" onchange="highlightSelected(this)" /><span>Kafeler</span></label>
+  <label><input type="checkbox" value="galeri" onchange="highlightSelected(this)" /><span>Sanat Galerileri</span></label>
+  <label><input type="checkbox" value="stadyum" onchange="highlightSelected(this)" /><span>Stadyumlar</span></label>
+  <label><input type="checkbox" value="park" onchange="highlightSelected(this)" /><span>Parklar</span></label>
+  <label><input type="checkbox" value="meydan" onchange="highlightSelected(this)" /><span>Meydanlar</span></label>
+  <label><input type="checkbox" value="cadde" onchange="highlightSelected(this)" /><span>Ünlü Caddeler</span></label>
 </div>
 
-<button class="add-trigger-btn" onclick="toggleModal(true)">+</button>
-
-<div class="modal-overlay" id="formModal">
-  <div class="modal-content">
-    <h2 style="margin-top:0; color:#2c3e50;">✨ Yeni Mekan Kaydı</h2>
-    <p style="color:#7f8c8d; font-size:14px;">Mekanı haritadan seçin ve bilgilerini doldurun.</p>
-
-    <div class="form-group">
-      <label>Mekan Adı</label>
-      <input type="text" id="placeName" class="form-control" placeholder="Örn: Galata Kahvecisi">
-    </div>
-
-    <div class="form-group">
-      <label>Harita Üzerinde Konum (Tıkla veya Ara)</label>
-      <input type="text" id="miniSearch" class="form-control" placeholder="Adres veya mekan ara..." onchange="searchLocation()">
-      <div id="miniMap"></div>
-      <small style="color:#95a5a6;">* Haritaya tıklayarak kırmızı işaretçiyi hareket ettirebilirsiniz.</small>
-    </div>
-
-    <div class="form-group">
-      <label>Kategori</label>
-      <select id="placeCategory" class="form-control">
-        <option value="tarihi">🏛️ Tarihi Yapı</option>
-        <option value="kafe">☕ Kafe & Restoran</option>
-        <option value="doga">🌳 Doğa & Park</option>
-        <option value="muze">🎨 Müze & Sanat</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>Ziyaret Notu / Açıklama</label>
-      <textarea id="placeDesc" class="form-control" rows="3" placeholder="Buraya gidince ne yapmalı?"></textarea>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-cancel" onclick="toggleModal(false)">Vazgeç</button>
-      <button class="btn btn-save" onclick="saveData()">Sisteme Kaydet</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  let mainMap, miniMap, miniMarker;
-  let savedPlaces = [];
-
-  // Haritaları Başlat
-  window.onload = () => {
-    mainMap = L.map('map').setView([41.0082, 28.9784], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
-  };
-
-  // Modal Aç/Kapat
-  function toggleModal(show) {
-    const modal = document.getElementById('formModal');
-    if (show) {
-      modal.classList.add('modal-active');
-      initMiniMap();
+  function highlightSelected(checkbox) {
+    const label = checkbox.closest('label');
+    if (checkbox.checked) {
+      label.style.backgroundColor = '#d9efff';
+      label.style.fontWeight = 'bold';
     } else {
-      modal.classList.remove('modal-active');
+      label.style.backgroundColor = '';
+      label.style.fontWeight = '';
     }
-  }
-
-  // Mini Harita Fonksiyonu
-  function initMiniMap() {
-    if (!miniMap) {
-      setTimeout(() => {
-        miniMap = L.map('miniMap').setView([41.0082, 28.9784], 11);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
-        
-        miniMap.on('click', (e) => {
-          updateMiniMarker(e.latlng);
-        });
-      }, 200);
-    }
-  }
-
-  function updateMiniMarker(latlng) {
-    if (miniMarker) miniMap.removeLayer(miniMarker);
-    miniMarker = L.marker(latlng, {draggable: true}).addTo(miniMap);
-  }
-
-  // Yer Arama (API)
-  async function searchLocation() {
-    const query = document.getElementById('miniSearch').value;
-    if(query.length < 3) return;
-    
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}, Istanbul`);
-    const data = await res.json();
-    
-    if(data.length > 0) {
-      const loc = [data[0].lat, data[0].lon];
-      miniMap.setView(loc, 15);
-      updateMiniMarker(loc);
-    }
-  }
-
-  // VERİ KAYDETME (Asıl Web Form İşlemi)
-  function saveData() {
-    const name = document.getElementById('placeName').value;
-    const cat = document.getElementById('placeCategory').value;
-    const desc = document.getElementById('placeDesc').value;
-    
-    if(!name || !miniMarker) {
-      alert("Lütfen mekan adını girin ve haritadan konum seçin!");
-      return;
-    }
-
-    const latlng = miniMarker.getLatLng();
-    const newData = { name, cat, desc, latlng };
-    
-    // Veriyi diziye ekle
-    savedPlaces.push(newData);
-
-    // Ana Haritaya Ekle
-    const markerColor = cat === 'tarihi' ? '#e74c3c' : (cat === 'kafe' ? '#f39c12' : '#2ecc71');
-    
-    L.circleMarker(latlng, {
-      radius: 10,
-      fillColor: markerColor,
-      color: "#fff",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.8
-    }).addTo(mainMap)
-      .bindPopup(`<b>${name}</b><br><i>${cat.toUpperCase()}</i><br>${desc}`)
-      .openPopup();
-
-    // Formu temizle ve kapat
-    document.getElementById('placeName').value = '';
-    document.getElementById('placeDesc').value = '';
-    toggleModal(false);
-    
-    console.log("Kaydedilen Veriler:", savedPlaces);
-    alert("Mekan başarıyla veri tabanına (simüle) eklendi!");
-  }
-
-  function createRoute() {
-    if(savedPlaces.length < 2) {
-        alert("Rota oluşturmak için en az 2 mekan eklemelisiniz!");
-        return;
-    }
-    alert("Eklediğiniz " + savedPlaces.length + " nokta arasında en kısa rota hesaplanıyor...");
   }
 </script>
 
+    </li>
+
+    <li class="range-area" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #f0f4ff; border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); font-family: 'Segoe UI', sans-serif; color: #2c3e50;">
+  <label for="placeCount" style="font-weight: 500; white-space: nowrap;">
+    🗺️ Kaç yeri gezmek istiyorsun?
+  </label>
+  <input type="range" id="placeCount" min="1" max="25" value="5"
+         oninput="document.getElementById('placeCountLabel').textContent = this.value"
+         style="width: 140px; accent-color: #3498db; cursor: pointer;" />
+  <span id="placeCountLabel" style="background: #3498db; color: white; font-weight: bold; padding: 2px 8px; border-radius: 6px; min-width: 26px; text-align: center;">
+    5
+  </span>
+</li>
+
+
+    <li style="list-style: none; margin-top: 10px;">
+  <button 
+    onclick="createRoute()" 
+    style="
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+    "
+    onmouseover="this.style.background='linear-gradient(135deg, #2ecc71, #27ae60)'; this.style.transform='scale(1.03)'"
+    onmouseout="this.style.background='linear-gradient(135deg, #27ae60, #2ecc71)'; this.style.transform='scale(1)'"
+  >
+     Rotayı Oluştur
+  </button>
+</li>
+
+</nav>
+
+<script>
+
+  function toggleCategoryMenu() {
+    const menu = document.getElementById("categoryMenu");
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+  }
+
+  const rangeInput = document.getElementById("placeCount");
+  const rangeLabel = document.getElementById("placeCountLabel");
+
+  rangeInput.addEventListener("input", () => {
+    rangeLabel.textContent = rangeInput.value;
+  });
+</script>
+
+  <div id="map" style="height: calc(100vh - 85px); width: 100%; position: relative;">
+  <div id="categoryLegend" style="
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 220px;
+  backdrop-filter: blur(6px);
+">
+  <strong style="font-size: 15px; display: block; margin-bottom: 6px;">🎨 Kategori Renkleri</strong>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+    <li><span style="display:inline-block;width:14px;height:14px;background:#e74c3c;border-radius:3px;margin-right:6px;"></span> Tarihi Yerler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#8e44ad;border-radius:3px;margin-right:6px;"></span> Müzeler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#2ecc71;border-radius:3px;margin-right:6px;"></span> Dini Yapılar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#3498db;border-radius:3px;margin-right:6px;"></span> Manzara Bölgeleri</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#f39c12;border-radius:3px;margin-right:6px;"></span> Kafeler</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#1abc9c;border-radius:3px;margin-right:6px;"></span> Sanat Galerileri</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:3px;margin-right:6px;"></span> Stadyumlar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#27ae60;border-radius:3px;margin-right:6px;"></span> Parklar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#e67e22;border-radius:3px;margin-right:6px;"></span> Meydanlar</li>
+    <li><span style="display:inline-block;width:14px;height:14px;background:#9b59b6;border-radius:3px;margin-right:6px;"></span> Ünlü Caddeler</li>
+  </ul>
+</div>
+
+  
+  
+  
+<div id="routeInstructions" style="
+  display: none;
+  position: absolute;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  max-width: 420px;
+  z-index: 1000;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(240, 240, 255, 0.2));
+  padding: 20px 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #222;
+  animation: fadeInUp 0.5s ease;
+  transition: all 0.3s ease-in-out;
+">
+  <div style="
+    font-weight: 600;
+    font-size: 17px;
+    margin-bottom: 10px;
+    color: #222;
+    border-left: 4px solid #007bff;
+    padding-left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  ">
+    <span>🧭</span> Yol Tarifi
+  </div>
+
+  <ol id="instructionList" style="
+    margin: 0;
+    padding-left: 20px;
+    max-height: 280px;
+    overflow-y: auto;
+    list-style-position: inside;
+    scrollbar-width: thin;
+    scrollbar-color: #999 #f0f0f0;
+  "></ol>
+</div>
+
+  </div>
+
+  <button class="add-btn-fixed" onclick="openPlaceModal()">+</button>
+
+  <div class="modal-overlay" id="placeModal">
+      <div class="modal-form">
+          <h2 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:10px;">📍 Yeni Yer Kaydet</h2>
+          
+          <label style="font-weight:bold; font-size:14px;">Mekan Adı</label>
+          <input type="text" id="newPlaceName" placeholder="Örn: Galata Kulesi">
+
+          <label style="font-weight:bold; font-size:14px;">Konum Bul / Haritadan Seç</label>
+          <input type="text" id="newPlaceSearch" placeholder="Yer ismi veya adres arayın..." onchange="formSearch()">
+          <div id="miniMap"></div>
+          <p style="font-size:12px; color:#666; margin:0;">* Haritaya tıklayarak işaretçiyi koyabilirsiniz.</p>
+
+          <label style="font-weight:bold; font-size:14px; display:block; margin-top:10px;">Kategori</label>
+          <select id="newPlaceCat">
+              <option value="tarihi">Tarihi Yerler</option>
+              <option value="muze">Müzeler</option>
+              <option value="kafe">Kafeler</option>
+              <option value="park">Parklar</option>
+          </select>
+
+          <label style="font-weight:bold; font-size:14px;">Ziyaret Notu</label>
+          <textarea id="newPlaceNote" rows="2" placeholder="Kısa bir açıklama ekleyin..."></textarea>
+
+          <div style="display:flex; gap:10px; margin-top:15px;">
+              <button onclick="closePlaceModal()" style="flex:1; padding:12px; border:none; border-radius:10px; cursor:pointer;">İptal</button>
+              <button class="save-btn" style="flex:2;" onclick="savePlaceData()">Kaydet ve Haritaya Ekle</button>
+          </div>
+      </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    /* ANA HARİTA KURULUMU */
+    var mainMap = L.map('map').setView([41.0082, 28.9784], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(mainMap);
+
+    var miniMap, miniMarker;
+
+    /* FORM VE MODAL FONKSİYONLARI */
+    function openPlaceModal() {
+        document.getElementById('placeModal').style.display = 'flex';
+        if (!miniMap) {
+            setTimeout(() => {
+                miniMap = L.map('miniMap').setView([41.0082, 28.9784], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+                miniMap.on('click', function(e) {
+                    if (miniMarker) miniMap.removeLayer(miniMarker);
+                    miniMarker = L.marker(e.latlng).addTo(miniMap);
+                });
+            }, 300);
+        }
+    }
+
+    function closePlaceModal() {
+        document.getElementById('placeModal').style.display = 'none';
+    }
+
+    async function formSearch() {
+        let val = document.getElementById('newPlaceSearch').value;
+        if (val.length < 3) return;
+        let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}, Istanbul`);
+        let data = await res.json();
+        if (data.length > 0) {
+            let loc = [data[0].lat, data[0].lon];
+            miniMap.setView(loc, 15);
+            if (miniMarker) miniMap.removeLayer(miniMarker);
+            miniMarker = L.marker(loc).addTo(miniMap);
+        }
+    }
+
+    function savePlaceData() {
+        let name = document.getElementById('newPlaceName').value;
+        let cat = document.getElementById('newPlaceCat').value;
+        if (!name || !miniMarker) { alert("Lütfen isim ve konum seçin!"); return; }
+        
+        L.marker(miniMarker.getLatLng()).addTo(mainMap)
+            .bindPopup(`<b>${name}</b><br>Kategori: ${cat}`)
+            .openPopup();
+        
+        alert("Başarıyla eklendi!");
+        closePlaceModal();
+    }
+
+    /* SENİN MEVCUT BOŞ FONKSİYONLARIN (script.js içeriğine göre doldurabilirsin) */
+    function searchAddress() {}
+    function useGeolocation() {}
+    function createRoute() { 
+        document.getElementById('routeInstructions').style.display = 'block'; 
+    }
+  </script>
 </body>
 </html>
