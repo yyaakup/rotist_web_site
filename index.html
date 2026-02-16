@@ -76,6 +76,29 @@
     cursor: pointer;
     font-size: 16px;
 }
+
+/* KALİTELİ ARAMA ÖNERİLERİ STİLİ */
+#suggestions {
+    position: absolute;
+    top: 45px;
+    left: 0;
+    width: 100%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 2000;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+}
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    color: #333;
+}
+.suggestion-item:hover { background: #f0f4ff; }
 </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -100,11 +123,11 @@
 
   <ul class="menu" style="display: flex; align-items: center; flex-wrap: wrap; gap: 20px; list-style: none; margin: 0; padding: 0;">
     
-    <li class="search-area" style="display: flex; align-items: center; gap: 10px;">
+    <li class="search-area" style="display: flex; align-items: center; gap: 10px; position: relative;">
 <input 
   type="text" 
   id="addressInput" 
-  placeholder="Taksim, Beyoğlu, İstanbul" 
+  placeholder="Nereden başlayacaksın?" 
   oninput="searchAddress()" 
   style="
     padding: 10px 14px; 
@@ -116,7 +139,7 @@
     outline: none;
   "
   onfocus="this.style.borderColor='#3498db'; this.style.boxShadow='0 0 8px rgba(52,152,219,0.4)'"
-  onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none'"
+  onblur="setTimeout(() => { document.getElementById('suggestions').style.display='none' }, 200)"
 />
       <div id="suggestions"></div>
       <button onclick="useGeolocation()" style="padding: 6px 10px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">Konum</button>
@@ -145,7 +168,7 @@
     }
 
     #categoryMenu input[type="checkbox"] {
-      accent-color: #007BFF; /* modern mavi */
+      accent-color: #007BFF;
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -361,7 +384,66 @@
         attribution: '© OpenStreetMap contributors'
     }).addTo(mainMap);
 
+    var startMarker = null;
     var miniMap, miniMarker;
+
+    /* 1. GELİŞMİŞ OTOMATİK TAMAMLAMALI ARAMA (KALİTELİ) */
+    async function searchAddress() {
+        const input = document.getElementById('addressInput');
+        const box = document.getElementById('suggestions');
+        const query = input.value;
+
+        if (query.length < 3) {
+            box.style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5&addressdetails=1`);
+            const data = await res.json();
+
+            box.innerHTML = '';
+            if (data.length > 0) {
+                box.style.display = 'block';
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = item.display_name;
+                    div.onclick = () => {
+                        const loc = [item.lat, item.lon];
+                        setStartMarker(loc, item.display_name);
+                        input.value = item.display_name;
+                        box.style.display = 'none';
+                    };
+                    box.appendChild(div);
+                });
+            }
+        } catch (err) { console.error("Arama hatası:", err); }
+    }
+
+    function setStartMarker(loc, label) {
+        mainMap.setView(loc, 15);
+        if (startMarker) mainMap.removeLayer(startMarker);
+        startMarker = L.marker(loc).addTo(mainMap)
+            .bindPopup(`<b>Başlangıç:</b><br>${label}`).openPopup();
+    }
+
+    /* 2. SAĞ TIK (PC) & BASILI TUTMA (MOBİL) ETKİLEŞİMİ */
+    // Sağ Tık
+    mainMap.on('contextmenu', function(e) {
+        setStartMarker(e.latlng, "Haritadan seçilen nokta");
+    });
+
+    // Mobilde Basılı Tutma (Simüle)
+    let pressTimer;
+    mainMap.on('mousedown touchstart', function(e) {
+        pressTimer = window.setTimeout(function() {
+            setStartMarker(e.latlng, "Basılı tutarak seçilen nokta");
+        }, 800);
+    });
+    mainMap.on('mouseup touchend mousemove touchmove', function() {
+        clearTimeout(pressTimer);
+    });
 
     /* FORM VE MODAL FONKSİYONLARI */
     function openPlaceModal() {
@@ -408,9 +490,11 @@
         closePlaceModal();
     }
 
-    /* SENİN MEVCUT BOŞ FONKSİYONLARIN (script.js içeriğine göre doldurabilirsin) */
-    function searchAddress() {}
-    function useGeolocation() {}
+    function useGeolocation() {
+        mainMap.locate({setView: true, maxZoom: 16});
+        mainMap.on('locationfound', (e) => setStartMarker(e.latlng, "Mevcut Konumun"));
+    }
+
     function createRoute() { 
         document.getElementById('routeInstructions').style.display = 'block'; 
     }
